@@ -9,12 +9,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Routes
-app.use("/api/auth", require("./routes/authRoutes"));
-
+// Test Route
 app.get("/", (req, res) => {
   res.send("Restaurant App Backend is running 🚀");
 });
+
+// Routes
+app.use("/api/auth", require("./routes/authRoutes"));
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
@@ -22,7 +23,13 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 })
 .then(() => console.log("✅ MongoDB Connected..."))
-.catch(err => console.log("❌ DB Connection Error:", err));
+.catch(err => console.error("❌ DB Connection Error:", err));
 
-// 👉 Important: Export app for Vercel
+// 🚀 Important: Only listen when running locally
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+}
+
+// 👉 Export app for Vercel
 module.exports = app;
