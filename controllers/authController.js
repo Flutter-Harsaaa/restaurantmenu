@@ -1,66 +1,95 @@
-const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Registration = require("../models/Registration");
+const Login = require("../models/Login");
 
-// Register User
-exports.registerUser = async (req, res) => {
+// Register Admin
+exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { fullName, email, contactNumber, restaurantName, password } = req.body;
 
-    // check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ msg: "User already exists" });
+    if (!fullName || !email || !contactNumber || !password) {
+      return res.status(400 ).json({ msg: "Missing required fields" });
+    }
 
-    // hash password
+    // Check if email already exists in Registration or Login
+    const existingReg = await Registration.findOne({ email });
+    const existingLogin = await Login.findOne({ email });
+    if (existingReg || existingLogin) {
+      return res.status(400).json({ msg: "Email already registered" });
+    }
+
+    // Create registration record
+    const registration = await Registration.create({
+      fullName,
+      email,
+      contactNumber,
+      restaurantName,
+    });
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // create user
-    const user = await User.create({ name, email, password: hashedPassword, role });
+    // Create login record (sync with registration)
+    await Login.create({
+      email,
+      password: hashedPassword,
+      isVerified: registration.isVerified,
+      isActive: registration.isActive,
+    });
 
-    res.status(201).json({ msg: "User registered successfully" });
+    res.status(201).json({ msg: "Admin registered successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Login User
-exports.loginUser = async (req, res) => {
+// Login Admin
+exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // find user
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+    if (!email || !password) return res.status(400).json({ msg: "Email and password required" });
 
-    // compare password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const loginUser = await Login.findOne({ email });
+    if (!loginUser) return res.status(400).json({ msg: "Invalid credentials" });
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, loginUser.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
-    // generate JWT token
+    // Check verification + active status
+    if (!loginUser.isVerified) {
+      return res.status(403).json({ msg: "Account not verified" });
+    }
+    if (loginUser.isActive !== 1) {
+      return res.status(403).json({ msg: "Account is inactive" });
+    }
+
+    // Generate JWT
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { email: loginUser.email, id: loginUser._id },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res.json({
-      token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    res.json({ 
+      token, 
+      user: { email: loginUser.email, isVerified: loginUser.isVerified, isActive: loginUser.isActive }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// Verify Token
 exports.verifyUser = async (req, res) => {
   try {
-    res.json({ 
-      id: req.user.id, 
-      role: req.user.role, 
-      msg: "Token is valid" 
+    res.json({
+      email: req.user.email,
+      msg: "Token is valid"
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
