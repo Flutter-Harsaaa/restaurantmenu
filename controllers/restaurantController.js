@@ -21,13 +21,13 @@ exports.registerRestaurant = async (req, res) => {
     const existingRestaurant = await Restaurant.findOne({
       $or: [
         { restaurantContactNumber },
-        { restaurantAddress }
+        { restaurantEmail } //changed by me.
       ]
     });
 
     if (existingRestaurant) {
       return res.status(400).json({
-        error: "Restaurant with this contact number or address already exists"
+        error: "Restaurant with this contact number or email already exists"
       });
     }
 
@@ -47,6 +47,7 @@ exports.registerRestaurant = async (req, res) => {
     });
 
     await newRestaurant.save();
+    console.log("newRestaurant>>>>>>",newRestaurant)
     res.status(201).json({ message: "Restaurant registered successfully", restaurant: newRestaurant });
   } catch (err) {
     console.error(err);
