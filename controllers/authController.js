@@ -87,7 +87,7 @@ exports.verifyUser = async (req, res) => {
   try {
     res.json({
       email: req.user.email,
-      msg: "Token is valid"
+      msg: "Token is valid."
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
