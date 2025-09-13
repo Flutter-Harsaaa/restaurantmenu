@@ -160,7 +160,7 @@ exports.registerRestaurant = async (req, res) => {
   } finally {
     // End session
     session.endSession();
-  }
+  } 
 };
 
 // Get all restaurants
