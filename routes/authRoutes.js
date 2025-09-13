@@ -8,3 +8,4 @@ router.post("/login", login);
 router.get("/verify", authMiddleware, verifyUser);
 
 module.exports = router;
+//routes

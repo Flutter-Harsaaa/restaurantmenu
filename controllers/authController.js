@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Registration = require("../models/Registration");
 const Login = require("../models/Login");
-
+//commit
 // Register Admin
 exports.register = async (req, res) => {
   try {
