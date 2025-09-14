@@ -9,7 +9,7 @@ class ResponseHelper {
     });
   }
 
-  static error(res, message = "Error", statusCode = 400, data = null) {
+  static error(res, message = "Error", statusCode = 400, data = []) {
     return res.status(statusCode).json({
       success: false,
       status: statusCode,

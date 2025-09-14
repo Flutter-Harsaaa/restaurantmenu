@@ -199,7 +199,7 @@ exports.getRestaurantById = async (req, res) => {
     }
 
     const restaurant = await Restaurant.findById(id)
-      .populate('selectedTempId', 'templateName');
+      .populate('selectedTempId'); // Remove the field selection to get all template data
 
     // Check if restaurant exists
     if (!restaurant) {

@@ -10,7 +10,7 @@ const restaurantSchema = new mongoose.Schema(
     maxOrderTime: { type: Number, required: true },
     staffCount: { type: Number, default: 0 },
     cuisine: { type: String, required: true },
-    selectedTempId: { type: mongoose.Schema.Types.ObjectId, ref: "Template" },
+    selectedTempId: { type: mongoose.Schema.Types.ObjectId,required: true, ref: "Template" },
     // selectedTempId: { type: String, required: true, ref: "Template" },
 
     isActive: { type: Boolean, default: true },
