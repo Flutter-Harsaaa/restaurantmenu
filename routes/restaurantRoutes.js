@@ -16,7 +16,7 @@ router.get(
   authMiddleware,
   restaurantController.getAllRestaurants
 );
-
+router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestaurant);
 // GET /api/restaurants/id/:id
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
 

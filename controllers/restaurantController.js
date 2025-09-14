@@ -213,3 +213,88 @@ exports.getRestaurantById = async (req, res) => {
     return ResponseHelper.error(res, "Internal server error while fetching restaurant", 500);
   }
 };
+
+exports.deleteRestaurant = async (req, res) => {
+  const session = await mongoose.startSession();
+  
+  try {
+    const { id } = req.params;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "Restaurant ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid restaurant ID format", 400);
+    }
+
+    // Execute transaction
+    const result = await session.withTransaction(async () => {
+      // Check if restaurant exists and is active
+      const restaurant = await Restaurant.findOne({
+        _id: id,
+        isActive: { $ne: false }
+      }).session(session);
+
+      if (!restaurant) {
+        throw new Error('RESTAURANT_NOT_FOUND');
+      }
+
+      // Set isActive = false in Restaurant collection
+      const restaurantUpdate = await Restaurant.updateOne(
+        { _id: id },
+        { 
+          $set: { 
+            isActive: false,
+            deletedAt: new Date(),
+            updatedAt: new Date()
+          }
+        }
+      ).session(session);
+
+      // Set isSetup = 0 in Login collection using resId field
+      const loginupdate=await Login.findOne({ resId: id }).session(session);{
+        console.log(loginupdate);
+      }
+      const loginUpdate = await Login.updateMany(
+        { resId: id }, // ✅ Correct field name
+        { 
+          $set: { 
+            isSetup: 0,
+            updatedAt: new Date()
+          }
+        }
+      ).session(session);
+
+      return {
+        restaurantName: restaurantUpdate.restaurantName,
+        loginRecordsModified: loginUpdate.modifiedCount
+      };
+    });
+
+    // Success response
+    return ResponseHelper.success(res, {
+      restaurantId: id,
+      restaurantName: result.restaurantName,
+      deletedAt: new Date().toISOString(),
+      loginRecordsUpdated: result.loginRecordsModified
+    }, "Restaurant successfully deleted (soft delete)", 200);
+
+  } catch (error) {
+    console.error('Error deleting restaurant:', error.message);
+
+    // Handle specific errors
+    if (error.message === 'RESTAURANT_NOT_FOUND') {
+      return ResponseHelper.error(res, "Restaurant not found or already deleted", 404);
+    }
+
+    return ResponseHelper.error(res, "Internal server error while deleting restaurant", 500);
+
+  } finally {
+    // Always cleanup session
+    await session.endSession();
+  }
+};
+;
+
