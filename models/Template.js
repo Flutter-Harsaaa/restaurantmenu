@@ -26,13 +26,13 @@ const templateSchema = new Schema({
   layoutType: {
     type: String,
     required: [true, 'Layout type is required'],
-    enum: ['card', 'grid', 'list', 'masonry', 'carousel'],
+    enum: ['card', 'grid', 'list', 'masonry', 'carousel','classic','vibrant'],
     lowercase: true
   },
   category: {
     type: String,
     required: [true, 'Category is required'],
-    enum: ['modern', 'classic', 'minimal', 'elegant', 'creative', 'professional'],
+    enum: ['modern', 'classic', 'minimal', 'elegant', 'creative', 'professional','traditional','minimalist','casual'],
     lowercase: true
   },
   isFree: {
@@ -80,7 +80,7 @@ const templateSchema = new Schema({
   colorScheme: {
     type: String,
     required: [true, 'Color scheme is required'],
-    enum: ['light', 'dark', 'auto'],
+    enum: ['light', 'dark', 'auto','warm','vibrant'],
     lowercase: true,
     default: 'light'
   },
@@ -106,7 +106,7 @@ const templateSchema = new Schema({
     type: String,
     required: [true, 'Font family is required'],
     trim: true,
-    enum: ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Source Sans Pro']
+    enum: ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Source Sans Pro','Georgia','Helvetica']
   },
   tags: [{
     type: String,
@@ -131,7 +131,7 @@ const templateSchema = new Schema({
     required: true,
     lowercase: true,
     trim: true,
-    enum: ['restaurant', 'cafe', 'bistro', 'fast-food', 'bakery', 'bar', 'hotel', 'catering']
+    // enum: ['restaurant', 'cafe', 'bistro', 'fast-food', 'bakery', 'bar', 'hotel', 'catering']
   }],
   rating: {
     type: Number,
