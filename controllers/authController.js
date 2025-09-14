@@ -4,6 +4,10 @@ const Registration = require("../models/Registration");
 const Login = require("../models/Login");
 const nodemailer = require('nodemailer');
 const ResponseHelper = require("../utils/responseHelper"); // Import your ResponseHelper
+const { tokenBlacklist } = require("../middleware/authMiddleware");
+const TokenBlacklist = require("../models/TokenBlacklist");
+// const { tokenBlacklist } = require("../middleware/authMiddleware");
+// const TokenBlacklist = require("../models/TokenBlacklist");
 
 // Register Admin
 exports.register = async (req, res) => {
@@ -18,14 +22,14 @@ exports.register = async (req, res) => {
     // Check if email already exists in Registration or Login
     const existingReg = await Registration.findOne({ email });
     const existingLogin = await Login.findOne({ email });
-    
+
     if (existingReg || existingLogin) {
       return ResponseHelper.error(res, "Email already registered. Please use a different email address", 400);
     }
 
     // Create registration record
     const registration = await Registration.create({
-      name: name, 
+      name: name,
       email,
       contactNumber,
       restaurantName,
@@ -54,7 +58,7 @@ exports.register = async (req, res) => {
         isActive: registration.isActive,
         createdAt: registration.createdAt,
         updatedAt: registration.updatedAt,
-        role:registration.role
+        role: registration.role
       },
       loginId: loginRecord._id
     };
@@ -66,7 +70,7 @@ exports.register = async (req, res) => {
     if (err.code === 11000) {
       return ResponseHelper.error(res, "Email already exists in the system", 400);
     }
-    
+
     return ResponseHelper.error(res, "Internal server error during registration", 500);
   }
 };
@@ -181,7 +185,7 @@ const otpStore = new Map();
 const createTransporter = () => {
   try {
     return nodemailer.createTransport({
-      service: 'gmail', 
+      service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_APP_PASSWORD
@@ -383,8 +387,8 @@ exports.verifyEmailOTP = async (req, res) => {
       storedOTP.attempts += 1;
       otpStore.set(email, storedOTP);
 
-      return ResponseHelper.error(res, 
-        `Invalid OTP. ${3 - storedOTP.attempts} attempt${3 - storedOTP.attempts !== 1 ? 's' : ''} remaining`, 
+      return ResponseHelper.error(res,
+        `Invalid OTP. ${3 - storedOTP.attempts} attempt${3 - storedOTP.attempts !== 1 ? 's' : ''} remaining`,
         400
       );
     }
@@ -392,13 +396,13 @@ exports.verifyEmailOTP = async (req, res) => {
     // OTP verified successfully - Update database
     try {
       const updatePromises = [];
-      
+
       // Update Registration collection if exists
       const registrationUpdate = Registration.findOneAndUpdate(
         { email: email },
-        { 
-          isVerified: true, 
-          emailVerifiedAt: new Date() 
+        {
+          isVerified: true,
+          emailVerifiedAt: new Date()
         },
         { new: true }
       );
@@ -407,9 +411,9 @@ exports.verifyEmailOTP = async (req, res) => {
       // Update Login collection if exists
       const loginUpdate = Login.findOneAndUpdate(
         { email: email },
-        { 
-          isVerified: true, 
-          emailVerifiedAt: new Date() 
+        {
+          isVerified: true,
+          emailVerifiedAt: new Date()
         },
         { new: true }
       );
@@ -557,3 +561,141 @@ exports.cleanupExpiredOTPs = () => {
 if (process.env.NODE_ENV === 'test') {
   exports.otpStore = otpStore;
 }
+
+
+// Logout Controller - Multiple strategies
+exports.logout = async (req, res) => {
+  try {
+    const token = req.token; // Get token from middleware
+    const user = req.user;   // Get user from middleware
+
+    if (!token) {
+      return ResponseHelper.error(res, "No active session found", 400);
+    }
+
+    // Strategy 1: Add token to in-memory blacklist (Fast, but not persistent)
+    tokenBlacklist.add(token);
+
+    // Strategy 2: Add token to database blacklist (Persistent, but slower)
+    // Calculate token expiry from JWT payload
+    const tokenExpiry = new Date(user.exp * 1000);
+
+    try {
+      await TokenBlacklist.create({
+        token: token,
+        email: user.email,
+        expiresAt: tokenExpiry
+      });
+    } catch (dbError) {
+      // If database storage fails, continue with in-memory blacklisting
+      console.warn('Failed to store token in database blacklist:', dbError.message);
+    }
+
+    // Prepare response data
+    const responseData = {
+      user: {
+        email: user.email,
+        id: user.id
+      },
+      logoutTime: new Date().toISOString(),
+      tokenExpiry: tokenExpiry.toISOString(),
+      message: "Session terminated successfully"
+    };
+
+    return ResponseHelper.success(res, responseData, "Logout successful. Please login again to continue", 200);
+
+  } catch (error) {
+    console.error('Logout Error:', error);
+    return ResponseHelper.error(res, "Internal server error during logout", 500);
+  }
+};
+
+// Logout from all devices - Blacklist all user tokens
+exports.logoutAllDevices = async (req, res) => {
+  try {
+    const user = req.user;
+
+    // Blacklist all tokens for this user (database approach)
+    const result = await TokenBlacklist.updateMany(
+      { email: user.email },
+      {
+        $setOnInsert: {
+          token: "all_devices_" + user.email + "_" + Date.now(),
+          email: user.email,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+        }
+      },
+      { upsert: true }
+    );
+
+    // Also blacklist current token
+    tokenBlacklist.add(req.token);
+    await TokenBlacklist.create({
+      token: req.token,
+      email: user.email,
+      expiresAt: new Date(user.exp * 1000)
+    });
+
+    const responseData = {
+      user: {
+        email: user.email,
+        id: user.id
+      },
+      devicesLoggedOut: result.modifiedCount + 1,
+      logoutTime: new Date().toISOString(),
+      message: "Logged out from all devices successfully"
+    };
+
+    return ResponseHelper.success(res, responseData, "Successfully logged out from all devices", 200);
+
+  } catch (error) {
+    console.error('Logout All Devices Error:', error);
+    return ResponseHelper.error(res, "Internal server error during logout", 500);
+  }
+};
+
+// Check logout status
+exports.checkLogoutStatus = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.slice(7);
+
+    if (!token) {
+      return ResponseHelper.success(res, {
+        isLoggedOut: true,
+        reason: "No token provided"
+      }, "No active session", 200);
+    }
+
+    // Check if token is blacklisted
+    const isBlacklisted = tokenBlacklist.has(token) ||
+      await TokenBlacklist.findOne({ token });
+
+    const responseData = {
+      isLoggedOut: isBlacklisted,
+      reason: isBlacklisted ? "Token has been revoked" : "Token is active",
+      checkedAt: new Date().toISOString()
+    };
+
+    return ResponseHelper.success(res, responseData,
+      isBlacklisted ? "Session has been terminated" : "Session is active", 200);
+
+  } catch (error) {
+    console.error('Check Logout Status Error:', error);
+    return ResponseHelper.error(res, "Internal server error", 500);
+  }
+};
+
+// Cleanup expired blacklisted tokens (run periodically)
+exports.cleanupBlacklistedTokens = async () => {
+  try {
+    const result = await TokenBlacklist.deleteMany({
+      expiresAt: { $lt: new Date() }
+    });
+
+    console.log(`Cleaned up ${result.deletedCount} expired blacklisted tokens`);
+    return result.deletedCount;
+  } catch (error) {
+    console.error('Cleanup Error:', error);
+    return 0;
+  }
+};
