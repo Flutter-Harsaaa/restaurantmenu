@@ -1,5 +1,7 @@
 // controllers/templateController.js
 const Template = require('../models/Template');
+const ResponseHelper = require('../utils/responseHelper');
+const mongoose = require('mongoose');
 
 // Get all templates with filtering, search, pagination
 const getAllTemplates = async (req, res) => {
@@ -46,28 +48,23 @@ const getAllTemplates = async (req, res) => {
     // Calculate pagination info
     const totalPages = Math.ceil(totalCount / limit);
     
-    res.status(200).json({
-      success: true,
-      data: {
-        templates,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalCount,
-          limit,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1
-        }
-      },
-      message: `Found ${templates.length} templates`
-    });
+    const responseData = {
+      templates,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    };
+
+    return ResponseHelper.success(res, responseData, `Found ${templates.length} templates`, 200);
     
   } catch (error) {
     console.error('Error fetching templates:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error while fetching templates'
-    });
+    return ResponseHelper.error(res, 'Internal server error while fetching templates', 500);
   }
 };
 
@@ -76,78 +73,63 @@ const getTemplateById = async (req, res) => {
   try {
     const { id } = req.params;
     
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, 'Invalid template ID format', 400);
+    }
+    
     const template = await Template.findById(id).lean();
     
     if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: 'Template not found'
-      });
+      return ResponseHelper.error(res, 'Template not found', 404);
     }
     
     // Check if template is active
     if (!template.isActive && req.query.includeInactive !== 'true') {
-      return res.status(404).json({
-        success: false,
-        message: 'Template not available'
-      });
+      return ResponseHelper.error(res, 'Template not available', 404);
     }
     
-    res.status(200).json({
-      success: true,
-      data: template,
-      message: 'Template retrieved successfully'
-    });
+    return ResponseHelper.success(res, template, 'Template retrieved successfully', 200);
     
   } catch (error) {
     console.error('Error fetching template:', error);
-    
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid template ID format'
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error while fetching template'
-    });
+    return ResponseHelper.error(res, 'Internal server error while fetching template', 500);
   }
 };
 
 // Create new template
 const createTemplate = async (req, res) => {
   try {
+    
     const template = new Template(req.body);
+    
     const savedTemplate = await template.save();
     
-    res.status(201).json({
-      success: true,
-      data: savedTemplate,
-      message: 'Template created successfully'
-    });
+    return ResponseHelper.success(res, savedTemplate, 'Template created successfully', 201);
     
   } catch (error) {
-    console.error('Error creating template:', error);
+    console.error('Error creating template - Full error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => ({
         field: err.path,
-        message: err.message
+        message: err.message,
+        value: err.value
       }));
       
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validationErrors
-      });
+      console.error('Validation errors:', validationErrors);
+      
+      return ResponseHelper.error(res, 'Validation failed', 400, validationErrors);
     }
     
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error while creating template'
-    });
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue)[0];
+      return ResponseHelper.error(res, `Template with this ${duplicateField} already exists`, 409);
+    }
+    
+    return ResponseHelper.error(res, 'Internal server error while creating template', 500);
   }
 };
 
@@ -156,6 +138,11 @@ const updateTemplate = async (req, res) => {
   try {
     const { id } = req.params;
     
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, 'Invalid template ID format', 400);
+    }
+    
     const template = await Template.findByIdAndUpdate(
       id,
       req.body,
@@ -163,24 +150,24 @@ const updateTemplate = async (req, res) => {
     );
     
     if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: 'Template not found'
-      });
+      return ResponseHelper.error(res, 'Template not found', 404);
     }
     
-    res.status(200).json({
-      success: true,
-      data: template,
-      message: 'Template updated successfully'
-    });
+    return ResponseHelper.success(res, template, 'Template updated successfully', 200);
     
   } catch (error) {
     console.error('Error updating template:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error while updating template'
-    });
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => ({
+        field: err.path,
+        message: err.message
+      }));
+      
+      return ResponseHelper.error(res, 'Validation failed', 400, validationErrors);
+    }
+    
+    return ResponseHelper.error(res, 'Internal server error while updating template', 500);
   }
 };
 
@@ -189,6 +176,11 @@ const deleteTemplate = async (req, res) => {
   try {
     const { id } = req.params;
     
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, 'Invalid template ID format', 400);
+    }
+    
     const template = await Template.findByIdAndUpdate(
       id,
       { isActive: false },
@@ -196,23 +188,14 @@ const deleteTemplate = async (req, res) => {
     );
     
     if (!template) {
-      return res.status(404).json({
-        success: false,
-        message: 'Template not found'
-      });
+      return ResponseHelper.error(res, 'Template not found', 404);
     }
     
-    res.status(200).json({
-      success: true,
-      message: 'Template deactivated successfully'
-    });
+    return ResponseHelper.success(res, null, 'Template deactivated successfully', 200);
     
   } catch (error) {
-    console.error('Error deleting template:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error while deleting template'
-    });
+    // console.error('Error deleting template:', error);
+    return ResponseHelper.error(res, 'Internal server error while deleting template', 500);
   }
 };
 
