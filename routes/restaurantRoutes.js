@@ -17,4 +17,8 @@ router.get(
   restaurantController.getAllRestaurants
 );
 
+// GET /api/restaurants/:id
+router.get('/:id',authMiddleware, restaurantController.getRestaurantById);
+
+
 module.exports = router;

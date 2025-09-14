@@ -182,4 +182,34 @@ exports.getAllRestaurants = async (req, res) => {
     return ResponseHelper.error(res, "Internal server error while fetching restaurants", 500);
   }
 };
-  
+
+// Get restaurant by ID
+exports.getRestaurantById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate if ID is provided
+    if (!id) {
+      return ResponseHelper.error(res, "Restaurant ID is required", 400);
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid restaurant ID format", 400);
+    }
+
+    const restaurant = await Restaurant.findById(id)
+      .populate('selectedTempId', 'templateName');
+
+    // Check if restaurant exists
+    if (!restaurant) {
+      return ResponseHelper.error(res, "Restaurant not found", 404);
+    }
+
+    return ResponseHelper.success(res, restaurant, "Restaurant retrieved successfully", 200);
+
+  } catch (err) {
+    console.error("Get restaurant by ID error:", err);
+    return ResponseHelper.error(res, "Internal server error while fetching restaurant", 500);
+  }
+};
