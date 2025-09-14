@@ -21,29 +21,29 @@ const validateObjectId = (req, res, next) => {
   next();
 };
 
-// @route   GET /api/templates
+// @route   GET /api/templates/all-template
 // @desc    Get all templates with filtering, search, pagination
 // @access  Public
-router.get('/', getAllTemplates);
+router.get('/all-template', getAllTemplates);
 
-// @route   GET /api/templates/:id
+// @route   GET /api/templates/id/:id
 // @desc    Get single template by ID
 // @access  Public
-router.get('/:id', validateObjectId, getTemplateById);
+router.get('/id/:id', validateObjectId, getTemplateById);
 
-// @route   POST /api/templates
+// @route   POST /api/templates/create
 // @desc    Create new template
 // @access  Private (Admin only)
-router.post('/', createTemplate);
+router.post('/create', createTemplate);
 
-// @route   PUT /api/templates/:id
+// @route   PUT /api/templates/update/:id
 // @desc    Update template
 // @access  Private (Admin only)
-router.put('/:id', validateObjectId, updateTemplate);
+router.put('/update/:id', validateObjectId, updateTemplate);
 
-// @route   DELETE /api/templates/:id
+// @route   DELETE /api/templates/delete/:id
 // @desc    Soft delete template (set isActive to false)
 // @access  Private (Admin only)
-router.delete('/:id', validateObjectId, deleteTemplate);
+router.delete('/delete/:id', validateObjectId, deleteTemplate);
 
 module.exports = router;

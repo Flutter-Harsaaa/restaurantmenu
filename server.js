@@ -12,7 +12,7 @@ app.use(cors());
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/restaurants", require("./routes/restaurantRoutes")); 
-app.use('/api/restaurants/templates',require('./routes/templateRoutes'));
+app.use('/api/templates',require('./routes/templateRoutes'));
 
 // Root
 app.get("/", (req, res) => {
