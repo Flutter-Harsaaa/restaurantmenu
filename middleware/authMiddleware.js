@@ -1,8 +1,11 @@
-// middleware/auth.js
+// middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
 const ResponseHelper = require("../utils/responseHelper");
 
-const authenticateToken = (req, res, next) => {
+// In-memory blacklist (use Redis in production)
+const tokenBlacklist = new Set();
+
+const authenticateToken = async (req, res, next) => {
   try {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
@@ -19,6 +22,11 @@ const authenticateToken = (req, res, next) => {
 
     if (!token) {
       return ResponseHelper.error(res, "Access token is missing. Please provide a valid token", 401);
+    }
+
+    // Check if token is blacklisted (in-memory check first for performance)
+    if (tokenBlacklist.has(token)) {
+      return ResponseHelper.error(res, "Token has been revoked. Please login again", 401);
     }
 
     // Verify token
@@ -41,8 +49,9 @@ const authenticateToken = (req, res, next) => {
         return ResponseHelper.error(res, "Token verification failed. Please login again", 401);
       }
 
-      // Token is valid, attach user info to request
+      // Token is valid, attach user info and token to request
       req.user = decoded;
+      req.token = token; // Store token for logout functionality
       next();
     });
 
@@ -51,4 +60,7 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-module.exports = authenticateToken;
+// Export both as named exports AND default export for compatibility
+module.exports = authenticateToken; // Default export for routes
+module.exports.authenticateToken = authenticateToken; // Named export
+module.exports.tokenBlacklist = tokenBlacklist; // Named export for controller

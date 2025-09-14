@@ -6,7 +6,11 @@ const {
   verifyUser, 
   sendEmailOTP, 
   verifyEmailOTP, 
-  resendEmailOTP 
+  resendEmailOTP ,
+  logout,
+  logoutAllDevices,
+  checkLogoutStatus
+
 } = require("../controllers/authController");
 const authenticateToken = require("../middleware/authMiddleware");
 
@@ -19,6 +23,11 @@ router.get("/verify", authenticateToken, verifyUser);
 router.post("/send-email-otp", sendEmailOTP);
 router.post("/verify-email-otp", verifyEmailOTP);
 router.post("/resend-email-otp", resendEmailOTP);
+
+// Logout routes
+router.post("/logout", authenticateToken, logout);
+router.post("/logout-all-devices", authenticateToken, logoutAllDevices);
+router.get("/logout-status", checkLogoutStatus);
 
 // Optional: Health check route for OTP service
 router.get("/otp-service/health", (req, res) => {
