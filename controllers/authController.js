@@ -45,9 +45,15 @@ exports.register = async (req, res) => {
       isVerified: registration.isVerified,
       isActive: registration.isActive,
     });
-
+    const registerUser = await Registration.findOne({ email });
+const token = jwt.sign(
+      { email: registerUser.email, id: registerUser._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
     // Prepare success response data
     const responseData = {
+      token,
       user: {
         id: registration._id,
         name: registration.name,
