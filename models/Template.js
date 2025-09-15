@@ -12,7 +12,6 @@ const templateSchema = new Schema({
   slug: {
     type: String,
     required: [true, 'Template slug is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens']

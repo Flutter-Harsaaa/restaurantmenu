@@ -24,8 +24,6 @@ async function connectWithRetry(retries = MAX_RETRIES, delayMs = INITIAL_DELAY) 
     try {
       const conn = await mongoose.connect(process.env.MONGO_URI, {
         dbName: "test", // change if needed
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
       });
