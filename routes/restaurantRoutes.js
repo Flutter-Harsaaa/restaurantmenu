@@ -33,7 +33,7 @@ router.get(
   restaurantController.getAllRestaurants
 );
 router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestaurant);
-// GET /api/restaurants/id/:id
+// GET /api/restaurants/id/:id 
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
 
 //categories Api's
@@ -42,6 +42,7 @@ router.get('/category/get-category/:restaurantId/categories',authMiddleware, get
 router.put('/category/update-category/:restaurantId/categories/:categoryId',authMiddleware, updateCategory);
 router.delete('/category/delete-category/:restaurantId/categories/:categoryId',authMiddleware, deleteCategory);
 
+//menuItems Api's
 router.post('/menu/create-menu/:resId/items', createMenuItem);
 router.get('/menu/get-all-menu/:resId/items', getMenuItems);
 router.get('/menu/getbyid-menu/:resId/items/:itemId', getMenuItem);
