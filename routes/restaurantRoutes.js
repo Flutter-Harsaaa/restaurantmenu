@@ -3,6 +3,14 @@ const router = express.Router();
 const restaurantController = require("../controllers/restaurantController");
 const authMiddleware = require("../middleware/authMiddleware");
 
+const {
+  createCategory,
+  getCategories,
+  updateCategory,
+  deleteCategory
+} =require("../controllers/categoryController.js");
+
+//restaurants Api's 
 // Register new restaurant (POST)
 router.post(
   "/register",
@@ -20,5 +28,9 @@ router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestauran
 // GET /api/restaurants/id/:id
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
 
-
+//categories Api's
+router.post('/create-category/:restaurantId/categories', createCategory);
+router.get('/get-category/:restaurantId/categories', getCategories);
+router.put('/update-category/:restaurantId/categories/:categoryId', updateCategory);
+router.delete('/delete-category/:restaurantId/categories/:categoryId', deleteCategory);
 module.exports = router;
