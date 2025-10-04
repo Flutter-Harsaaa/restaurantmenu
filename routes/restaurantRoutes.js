@@ -58,7 +58,7 @@ router.delete('/category/delete-category/:restaurantId/categories/:categoryId',a
 
 //menuItems Api's
 //menuItems Api's
-router.post('/menu/create-menu/:resId/items',authMiddleware, createMenuItem);
+router.post('/menu/create-menu/:resId/items', createMenuItem);
 router.get('/menu/get-all-menu/:resId/items',authMiddleware, getMenuItems);
 router.get('/menu/get-menu/:resId/items/:itemId',authMiddleware, getMenuItem);
 router.put('/menu/update-menu/:resId/items/:itemId',authMiddleware, updateMenuItem);

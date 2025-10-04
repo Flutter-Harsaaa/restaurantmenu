@@ -8,7 +8,7 @@ const menuItemSchema = new mongoose.Schema({
   quantity: { type: String, trim: true },
   itemCategory: { 
     type: String, 
-    enum: ["veg", "non-veg", "pig"], 
+    enum: ["veg", "non-veg"], 
     required: true 
   },
   prepTime: { type: String, trim: true },

@@ -9,13 +9,13 @@ exports.createTable = async (req, res) => {
 
     // Validation
     if (!tableNumber) {
-      return ResponseHelper.error(res, "Table number is required", 400, ['TABLE_NUMBER_REQUIRED']);
+      return ResponseHelper.error(res, "Table number is required", 400);
     }
     if (!capacity) {
-      return ResponseHelper.error(res, "Capacity is required", 400, ['CAPACITY_REQUIRED']);
+      return ResponseHelper.error(res, "Capacity is required", 400);
     }
     if (!location) {
-      return ResponseHelper.error(res, "Location is required", 400, ['LOCATION_REQUIRED']);
+      return ResponseHelper.error(res, "Location is required", 400);
     }
 
     // Check if table number already exists for this restaurant
@@ -26,7 +26,7 @@ exports.createTable = async (req, res) => {
     });
 
     if (existingTable) {
-      return ResponseHelper.error(res, "Table number already exists for this restaurant", 400, ['TABLE_NUMBER_EXISTS']);
+      return ResponseHelper.error(res, "Table number already exists for this restaurant", 400);
     }
 
     const table = await Table.create({
@@ -47,7 +47,7 @@ exports.createTable = async (req, res) => {
     }
 
     if (error.code === 11000) {
-      return ResponseHelper.error(res, "Table number already exists for this restaurant", 400, ['TABLE_NUMBER_EXISTS']);
+      return ResponseHelper.error(res, "Table number already exists for this restaurant", 400);
     }
 
     return ResponseHelper.error(res, "Internal server error", 500, [error.message]);
@@ -99,7 +99,7 @@ exports.getTableById = async (req, res) => {
     const { restaurantId, tableId } = req.params;
 
     if (!tableId.match(/^[0-9a-fA-F]{24}$/)) {
-      return ResponseHelper.error(res, "Invalid table ID format", 400, ['INVALID_TABLE_ID']);
+      return ResponseHelper.error(res, "Invalid table ID format", 400);
     }
 
     const table = await Table.findOne({ 
@@ -109,7 +109,7 @@ exports.getTableById = async (req, res) => {
     });
 
     if (!table) {
-      return ResponseHelper.error(res, "Table not found for this restaurant", 404, ['TABLE_NOT_FOUND']);
+      return ResponseHelper.error(res, "Table not found for this restaurant", 404);
     }
 
     return ResponseHelper.success(res, table, "Table fetched successfully");
@@ -124,7 +124,7 @@ exports.updateTable = async (req, res) => {
     const { restaurantId, tableId } = req.params;
     
     if (!tableId.match(/^[0-9a-fA-F]{24}$/)) {
-      return ResponseHelper.error(res, "Invalid table ID format", 400, ['INVALID_TABLE_ID']);
+      return ResponseHelper.error(res, "Invalid table ID format", 400);
     }
 
     // Build update fields object (following your pattern)
@@ -146,7 +146,7 @@ exports.updateTable = async (req, res) => {
       });
       
       if (existingTable) {
-        return ResponseHelper.error(res, "Table number already exists for this restaurant", 400, ['TABLE_NUMBER_EXISTS']);
+        return ResponseHelper.error(res, "Table number already exists for this restaurant", 400);
       }
     }
 
@@ -157,7 +157,7 @@ exports.updateTable = async (req, res) => {
     );
 
     if (!table) {
-      return ResponseHelper.error(res, "Table not found for this restaurant", 404, ['TABLE_NOT_FOUND']);
+      return ResponseHelper.error(res, "Table not found for this restaurant", 404);
     }
 
     return ResponseHelper.success(res, table, "Table updated successfully");
@@ -168,7 +168,7 @@ exports.updateTable = async (req, res) => {
     }
 
     if (error.code === 11000) {
-      return ResponseHelper.error(res, "Table number already exists for this restaurant", 400, ['TABLE_NUMBER_EXISTS']);
+      return ResponseHelper.error(res, "Table number already exists for this restaurant", 400);
     }
 
     return ResponseHelper.error(res, "Internal server error", 500, [error.message]);
@@ -181,7 +181,7 @@ exports.deleteTable = async (req, res) => {
     const { restaurantId, tableId } = req.params;
 
     if (!tableId.match(/^[0-9a-fA-F]{24}$/)) {
-      return ResponseHelper.error(res, "Invalid table ID format", 400, ['INVALID_TABLE_ID']);
+      return ResponseHelper.error(res, "Invalid table ID format", 400);
     }
 
     const table = await Table.findOneAndUpdate(
@@ -191,7 +191,7 @@ exports.deleteTable = async (req, res) => {
     );
 
     if (!table) {
-      return ResponseHelper.error(res, "Table not found or already deleted", 404, ['TABLE_NOT_FOUND']);
+      return ResponseHelper.error(res, "Table not found or already deleted", 404);
     }
 
     return ResponseHelper.success(res, table, "Table deleted successfully");

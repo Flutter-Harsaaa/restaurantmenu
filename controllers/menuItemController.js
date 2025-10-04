@@ -1,4 +1,4 @@
-const MenuItem = require('../models/menuItem');
+const MenuItem = require('../models/MenuItem');
 const ResponseHelper = require('../utils/responseHelper');
 
 exports.createMenuItem = async (req, res) => {
@@ -7,19 +7,19 @@ exports.createMenuItem = async (req, res) => {
     const { resId } = req.params;
 
     if (!itemName) {
-      return ResponseHelper.error(res, "Item name is required", 400, ['ITEM_NAME_REQUIRED']);
+      return ResponseHelper.error(res, "Item name is required", 400);
     }
     if (!price && price !== 0) {
-      return ResponseHelper.error(res, "Price is required", 400, ['PRICE_REQUIRED']);
+      return ResponseHelper.error(res, "Price is required", 400);
     }
     if (!itemCategory) {
-      return ResponseHelper.error(res, "Item category is required", 400, ['ITEM_CATEGORY_REQUIRED']);
+      return ResponseHelper.error(res, "Item category is required", 400);
     }
-    if (!["veg", "non-veg", "pig"].includes(itemCategory)) {
-      return ResponseHelper.error(res, "Invalid item category", 400, ['INVALID_ITEM_CATEGORY']);
+    if (!["veg", "non-veg"].includes(itemCategory)) {
+      return ResponseHelper.error(res, "Invalid item category",400);
     }
     if (spicyLevel && !["low", "medium", "high"].includes(spicyLevel)) {
-      return ResponseHelper.error(res, "Invalid spicy level", 400, ['INVALID_SPICY_LEVEL']);
+      return ResponseHelper.error(res, "Invalid spicy level", 400);
     }
 
     const newMenuItem = await MenuItem.create({
@@ -60,7 +60,7 @@ exports.getMenuItem = async (req, res) => {
     const item = await MenuItem.findOne({ _id: itemId, resId });
 
     if (!item) {
-      return ResponseHelper.error(res, "Menu item not found", 404, ['ITEM_NOT_FOUND']);
+      return ResponseHelper.error(res, "Menu item not found", 404);
     }
 
     return ResponseHelper.success(res, item, "Item fetched successfully");
@@ -76,10 +76,10 @@ exports.updateMenuItem = async (req, res) => {
 
     // If updating category or spicyLevel, validate enums
     if (updateData.itemCategory && !["veg", "non-veg", "pig"].includes(updateData.itemCategory)) {
-      return ResponseHelper.error(res, "Invalid item category", 400, ['INVALID_ITEM_CATEGORY']);
+      return ResponseHelper.error(res, "Invalid item category", 400);
     }
     if (updateData.spicyLevel && !["low", "medium", "high"].includes(updateData.spicyLevel)) {
-      return ResponseHelper.error(res, "Invalid spicy level", 400, ['INVALID_SPICY_LEVEL']);
+      return ResponseHelper.error(res, "Invalid spicy level", 400);
     }
 
     const updatedItem = await MenuItem.findOneAndUpdate(
@@ -89,7 +89,7 @@ exports.updateMenuItem = async (req, res) => {
     );
 
     if (!updatedItem) {
-      return ResponseHelper.error(res, "Menu item not found", 404, ['ITEM_NOT_FOUND']);
+      return ResponseHelper.error(res, "Menu item not found", 404);
     }
 
     return ResponseHelper.success(res, updatedItem, "Item updated successfully");
@@ -104,7 +104,7 @@ exports.deleteMenuItem = async (req, res) => {
     const deletedItem = await MenuItem.findOneAndDelete({ _id: itemId, resId });
 
     if (!deletedItem) {
-      return ResponseHelper.error(res, "Menu item not found", 404, ['ITEM_NOT_FOUND']);
+      return ResponseHelper.error(res, "Menu item not found", 404);
     }
 
     return ResponseHelper.success(res, deletedItem, "Item deleted successfully");
