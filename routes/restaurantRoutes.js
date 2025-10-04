@@ -17,6 +17,8 @@ router.get(
   restaurantController.getAllRestaurants
 );
 router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestaurant);
+router.put('/update/:id',authMiddleware, restaurantController.updateRestaurant);
+//some routes are reamining 
 // GET /api/restaurants/id/:id
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
 

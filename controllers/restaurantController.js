@@ -214,7 +214,7 @@ exports.getRestaurantById = async (req, res) => {
   }
 };
 
-exports.deleteRestaurant = async (req, res) => {
+exports.deleteRestaurant = async (req, res,) => {
   const session = await mongoose.startSession();
   
   try {
@@ -296,5 +296,333 @@ exports.deleteRestaurant = async (req, res) => {
     await session.endSession();
   }
 };
-;
+
+
+
+
+
+// Update restaurant data (PUT - Full Update)
+exports.updateRestaurant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "Restaurant ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid restaurant ID format", 400);
+    }
+
+    // Check if restaurant exists and is active
+    const existingRestaurant = await Restaurant.findOne({
+      _id: id,
+      isActive: { $ne: false }
+    });
+
+    if (!existingRestaurant) {
+      return ResponseHelper.error(res, "Restaurant not found or has been deleted", 404);
+    }
+
+    // Extract updatable fields from request body
+    const {
+      restaurantName,
+      restaurantContactNumber,
+      restaurantAddress,
+      logoUrl,
+      minOrderTime,
+      maxOrderTime,
+      staffCount,
+      cuisine,
+      selectedTempId,
+      restaurantEmail,
+      restaurantGpsAddress
+    } = req.body;
+
+    // Validate required fields for full update
+    if (!restaurantName || !restaurantContactNumber || !restaurantAddress || 
+        !minOrderTime || !maxOrderTime || !cuisine) {
+      return ResponseHelper.error(res, "Missing required fields: restaurantName, restaurantContactNumber, restaurantAddress, minOrderTime, maxOrderTime, and cuisine are required for full update", 400);
+    }
+
+    // Check for duplicate contact number or email (excluding current restaurant)
+    const duplicateCheck = await Restaurant.findOne({
+      _id: { $ne: id },
+      isActive: { $ne: false },
+      $or: [
+        { restaurantContactNumber },
+        ...(restaurantEmail ? [{ restaurantEmail }] : [])
+      ]
+    });
+
+    if (duplicateCheck) {
+      return ResponseHelper.error(res, "Another restaurant with this contact number or email already exists", 409);
+    }
+
+    // Update restaurant with new data
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      id,
+      {
+        restaurantName,
+        restaurantContactNumber,
+        restaurantAddress,
+        logoUrl,
+        minOrderTime,
+        maxOrderTime,
+        staffCount: staffCount || 0,
+        cuisine,
+        selectedTempId,
+        restaurantEmail,
+        restaurantGpsAddress,
+        updatedAt: new Date()
+      },
+      {
+        new: true, // Return updated document
+        runValidators: true, // Run schema validations
+        context: 'query' // For custom validators
+      }
+    ).populate('selectedTempId', 'templateName');
+
+    return ResponseHelper.success(res, updatedRestaurant, "Restaurant updated successfully", 200);
+
+  } catch (error) {
+    console.error('Error updating restaurant:', error);
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return ResponseHelper.error(res, `Validation failed: ${messages.join(', ')}`, 400);
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern)[0];
+      return ResponseHelper.error(res, `A restaurant with this ${duplicateField} already exists`, 409);
+    }
+
+    return ResponseHelper.error(res, "Internal server error while updating restaurant", 500);
+  }
+};
+
+// Partial update restaurant data (PATCH - Partial Update)
+exports.updateRestaurantPartial = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "Restaurant ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid restaurant ID format", 400);
+    }
+
+    // Check if restaurant exists and is active
+    const existingRestaurant = await Restaurant.findOne({
+      _id: id,
+      isActive: { $ne: false }
+    });
+
+    if (!existingRestaurant) {
+      return ResponseHelper.error(res, "Restaurant not found or has been deleted", 404);
+    }
+
+    // Get only the fields that are provided in request body
+    const updateFields = {};
+    const allowedFields = [
+      'restaurantName', 'restaurantContactNumber', 'restaurantAddress',
+      'logoUrl', 'minOrderTime', 'maxOrderTime', 'staffCount',
+      'cuisine', 'selectedTempId', 'restaurantEmail', 'restaurantGpsAddress'
+    ];
+
+    // Only include fields that are actually provided
+    allowedFields.forEach(field => {
+      if (req.body.hasOwnProperty(field)) {
+        updateFields[field] = req.body[field];
+      }
+    });
+
+    // Always update the updatedAt timestamp
+    updateFields.updatedAt = new Date();
+
+    // Check if any fields to update
+    if (Object.keys(updateFields).length === 1) { // Only updatedAt
+      return ResponseHelper.error(res, "No fields provided for update", 400);
+    }
+
+    // Check for duplicates if contact or email is being updated
+    if (updateFields.restaurantContactNumber || updateFields.restaurantEmail) {
+      const duplicateQuery = {
+        _id: { $ne: id },
+        isActive: { $ne: false },
+        $or: []
+      };
+
+      if (updateFields.restaurantContactNumber) {
+        duplicateQuery.$or.push({ restaurantContactNumber: updateFields.restaurantContactNumber });
+      }
+      if (updateFields.restaurantEmail) {
+        duplicateQuery.$or.push({ restaurantEmail: updateFields.restaurantEmail });
+      }
+
+      const duplicateCheck = await Restaurant.findOne(duplicateQuery);
+      if (duplicateCheck) {
+        return ResponseHelper.error(res, "Another restaurant with this contact number or email already exists", 409);
+      }
+    }
+
+    // Update restaurant with partial data
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      id,
+      updateFields,
+      {
+        new: true, // Return updated document
+        runValidators: true, // Run schema validations
+        context: 'query' // For custom validators
+      }
+    ).populate('selectedTempId', 'templateName');
+
+    return ResponseHelper.success(res, {
+      restaurant: updatedRestaurant,
+      updatedFields: Object.keys(updateFields).filter(field => field !== 'updatedAt')
+    }, "Restaurant updated successfully", 200);
+
+  } catch (error) {
+    console.error('Error partially updating restaurant:', error);
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return ResponseHelper.error(res, `Validation failed: ${messages.join(', ')}`, 400);
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern)[0];
+      return ResponseHelper.error(res, `A restaurant with this ${duplicateField} already exists`, 409);
+    }
+
+    return ResponseHelper.error(res, "Internal server error while updating restaurant", 500);
+  }
+};
+
+// Update specific restaurant field (specialized endpoints)
+exports.updateRestaurantStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "Restaurant ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid restaurant ID format", 400);
+    }
+
+    if (typeof isActive !== 'boolean') {
+      return ResponseHelper.error(res, "isActive must be a boolean value", 400);
+    }
+
+    // Check if restaurant exists
+    const existingRestaurant = await Restaurant.findById(id);
+    if (!existingRestaurant) {
+      return ResponseHelper.error(res, "Restaurant not found", 404);
+    }
+
+    // Update only the isActive status
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      id,
+      {
+        isActive,
+        updatedAt: new Date()
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    return ResponseHelper.success(res, updatedRestaurant, `Restaurant ${isActive ? 'activated' : 'deactivated'} successfully`, 200);
+
+  } catch (error) {
+    console.error('Error updating restaurant status:', error);
+    return ResponseHelper.error(res, "Internal server error while updating restaurant status", 500);
+  }
+};
+
+// Update restaurant contact information only
+exports.updateRestaurantContact = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { restaurantContactNumber, restaurantEmail } = req.body;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "Restaurant ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid restaurant ID format", 400);
+    }
+
+    if (!restaurantContactNumber && !restaurantEmail) {
+      return ResponseHelper.error(res, "Either contact number or email must be provided", 400);
+    }
+
+    // Check if restaurant exists and is active
+    const existingRestaurant = await Restaurant.findOne({
+      _id: id,
+      isActive: { $ne: false }
+    });
+
+    if (!existingRestaurant) {
+      return ResponseHelper.error(res, "Restaurant not found or has been deleted", 404);
+    }
+
+    // Build update object
+    const updateData = { updatedAt: new Date() };
+    if (restaurantContactNumber) updateData.restaurantContactNumber = restaurantContactNumber;
+    if (restaurantEmail) updateData.restaurantEmail = restaurantEmail;
+
+    // Check for duplicates
+    const duplicateCheck = await Restaurant.findOne({
+      _id: { $ne: id },
+      isActive: { $ne: false },
+      $or: [
+        ...(restaurantContactNumber ? [{ restaurantContactNumber }] : []),
+        ...(restaurantEmail ? [{ restaurantEmail }] : [])
+      ]
+    });
+
+    if (duplicateCheck) {
+      return ResponseHelper.error(res, "Another restaurant with this contact information already exists", 409);
+    }
+
+    // Update contact information
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      id,
+      updateData,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    return ResponseHelper.success(res, updatedRestaurant, "Restaurant contact information updated successfully", 200);
+
+  } catch (error) {
+    console.error('Error updating restaurant contact:', error);
+
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return ResponseHelper.error(res, `Validation failed: ${messages.join(', ')}`, 400);
+    }
+
+    return ResponseHelper.error(res, "Internal server error while updating restaurant contact", 500);
+  }
+};
 

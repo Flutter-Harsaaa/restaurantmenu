@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Registration = require("../models/Registration");
+const mongoose = require("mongoose");
 const Login = require("../models/Login");
 const nodemailer = require('nodemailer');
 const ResponseHelper = require("../utils/responseHelper"); // Import your ResponseHelper
@@ -697,5 +698,603 @@ exports.cleanupBlacklistedTokens = async () => {
   } catch (error) {
     console.error('Cleanup Error:', error);
     return 0;
+  }
+};
+
+// exports.deleteUser = async (req, res) => {
+//   const session = await mongoose.startSession();
+  
+//   try {
+//     const { authHeader } = req.headers.authorization;
+//      const token = authHeader.slice(7); // Remove 'Bearer ' prefix
+
+//     // Validate required fields
+//     if (!token) {
+//       return ResponseHelper.error(res, 'Access token is required', 400);
+//     }
+
+//     // Extract and validate JWT token
+//     let decoded;
+//     try {
+//       decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     } catch (error) {
+//       if (error.name === 'TokenExpiredError') {
+//         return ResponseHelper.error(res, 'Token has expired. Please login again', 401);
+//       }
+//       if (error.name === 'JsonWebTokenError') {
+//         return ResponseHelper.error(res, 'Invalid token provided', 401);
+//       }
+//       return ResponseHelper.error(res, 'Token verification failed', 401);
+//     }
+
+//     const email = decoded.email;
+//     if (!email) {
+//       return ResponseHelper.error(res, 'Email not found in token', 400);
+//     }
+
+//     // Validate email format
+//     if (!isValidEmail(email)) {
+//       return ResponseHelper.error(res, 'Invalid email format', 400);
+//     }
+
+//     // Execute transaction
+//     const result = await session.withTransaction(async () => {
+//       // Check if restaurant exists and is active
+//       const register = await Registration.findOne({
+//         email: email,
+//         isActive: { $ne: false }
+//       }).session(session);
+
+//       if (!register) {
+//         throw new Error('USER_NOT_FOUND');
+//       }
+
+//       // Set isActive = false in Restaurant collection
+//       const registerUpdate = await Registration.updateOne(
+//         { email: email },
+//         { 
+//           $set: { 
+//             isActive: 0,
+//             deletedAt: new Date(),
+//             updatedAt: new Date()
+//           }
+//         }
+//       ).session(session);
+
+//       // Set isSetup = 0 in Login collection using resId field
+//       const login=await Login.findOne({ email: email }).session(session);{
+//         console.log(login);
+//       }
+//       const loginUpdate = await Login.updateMany(
+//         { email: email }, // ✅ Correct field name
+//         { 
+//           $set: { 
+//             isActive: false,
+//             updatedAt: new Date()
+//           }
+//         }
+//       ).session(session);
+
+//       return {
+//         name: registerUpdate.name,
+//         loginRecordsModified: loginUpdate.modifiedCount
+//       };
+//     });
+
+//     // Success response
+//     return ResponseHelper.success(res, {
+//       userId: id,
+//       name: result.name,
+//       deletedAt: new Date().toISOString(),
+//       loginRecordsUpdated: result.loginRecordsModified
+//     }, "Restaurant successfully deleted (soft delete)", 200);
+
+//   } catch (error) {
+//     console.error('Error deleting restaurant:', error.message);
+
+//     // Handle specific errors
+//     if (error.message === 'USER_NOT_FOUND') {
+//       return ResponseHelper.error(res, "Restaurant not found or already deleted", 404);
+//     }
+
+//     return ResponseHelper.error(res, "Internal server error while deleting restaurant", 500);
+
+//   } finally {
+//     // Always cleanup session
+//     await session.endSession();
+//   }
+// };
+
+
+
+
+
+// Update user profile details (registration collection)
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "User ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid user ID format", 400);
+    }
+
+    // Check if user exists in registration collection
+    const existingUser = await Registration.findOne({
+      _id: id,
+      isActive: { $ne: false }
+    });
+
+    if (!existingUser) {
+      return ResponseHelper.error(res, "User not found or has been deactivated", 404);
+    }
+
+    // Extract updatable fields from request body (excluding password)
+    const {
+      name,
+      email,
+      contactNumber
+    } = req.body;
+
+    // Check if email is being updated and if it already exists
+    if (email && email !== existingUser.email) {
+      const emailExists = await Registration.findOne({
+        _id: { $ne: id },
+        email: email,
+        isActive: { $ne: false }
+      });
+
+      if (emailExists) {
+        return ResponseHelper.error(res, "Email already exists for another user", 409);
+      }
+
+      // Also check in Login collection if email is used there
+      const emailInLogin = await Login.findOne({
+        email: email,
+        _id: { $ne: existingUser._id }
+      });
+
+      if (emailInLogin) {
+        return ResponseHelper.error(res, "Email already exists in login records", 409);
+      }
+    }
+
+    // Check if phone is being updated and if it already exists
+    if (phone && phone !== existingUser.phone) {
+      const phoneExists = await Registration.findOne({
+        _id: { $ne: id },
+        phone: phone,
+        isActive: { $ne: false }
+      });
+
+      if (phoneExists) {
+        return ResponseHelper.error(res, "Phone number already exists for another user", 409);
+      }
+    }
+
+    // Build update object with only provided fields
+    const updateData = { updatedAt: new Date() };
+
+   
+    if (name !== name) updateData.name = name;
+    if (email !== email) updateData.email = email;
+    if (contactNumber !== contactNumber) updateData.contactNumber = contactNumber;
+  
+
+    // Update user profile in registration collection
+    const updatedUser = await Registration.findByIdAndUpdate(
+      id,
+      updateData,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).select('-password'); // Exclude password from response
+
+    return ResponseHelper.success(res, {
+      user: updatedUser,
+      updatedFields: Object.keys(updateData).filter(field => field !== 'updatedAt')
+    }, "User profile updated successfully", 200);
+
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return ResponseHelper.error(res, `Validation failed: ${messages.join(', ')}`, 400);
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern)[0];
+      return ResponseHelper.error(res, `User with this ${duplicateField} already exists`, 409);
+    }
+
+    return ResponseHelper.error(res, "Internal server error while updating user profile", 500);
+  }
+};
+
+// Update user password (login collection)
+exports.updateUserPassword = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "User ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid user ID format", 400);
+    }
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return ResponseHelper.error(res, "Current password, new password, and confirm password are required", 400);
+    }
+
+    if (newPassword !== confirmPassword) {
+      return ResponseHelper.error(res, "New password and confirm password do not match", 400);
+    }
+
+    if (newPassword.length < 6) {
+      return ResponseHelper.error(res, "New password must be at least 6 characters long", 400);
+    }
+
+    // Execute transaction for atomic operations
+    const result = await session.withTransaction(async () => {
+      // Find user in registration collection
+      const user = await Registration.findOne({
+        _id: id,
+        isActive: { $ne: false }
+      }).session(session);
+
+      if (!user) {
+        throw new Error('USER_NOT_FOUND');
+      }
+
+      // Find corresponding login record
+      const loginRecord = await Login.findOne({
+        email: user.email
+      }).session(session);
+
+      if (!loginRecord) {
+        throw new Error('LOGIN_RECORD_NOT_FOUND');
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, loginRecord.password);
+      if (!isCurrentPasswordValid) {
+        throw new Error('INVALID_CURRENT_PASSWORD');
+      }
+
+      // Hash new password
+      const saltRounds = 12;
+      const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // Update password in login collection
+      const passwordUpdate = await Login.updateOne(
+        { email: user.email },
+        { 
+          $set: { 
+            password: hashedNewPassword,
+            updatedAt: new Date()
+          }
+        }
+      ).session(session);
+
+      if (passwordUpdate.modifiedCount === 0) {
+        throw new Error('PASSWORD_UPDATE_FAILED');
+      }
+
+      return {
+        userEmail: user.email,
+        passwordUpdated: true
+      };
+    });
+
+    return ResponseHelper.success(res, {
+      userId: id,
+      email: result.userEmail,
+      passwordUpdated: result.passwordUpdated,
+      updatedAt: new Date().toISOString()
+    }, "Password updated successfully", 200);
+
+  } catch (error) {
+    console.error('Error updating password:', error.message);
+
+    // Handle specific errors
+    if (error.message === 'USER_NOT_FOUND') {
+      return ResponseHelper.error(res, "User not found or has been deactivated", 404);
+    }
+
+    if (error.message === 'LOGIN_RECORD_NOT_FOUND') {
+      return ResponseHelper.error(res, "Login record not found for this user", 404);
+    }
+
+    if (error.message === 'INVALID_CURRENT_PASSWORD') {
+      return ResponseHelper.error(res, "Current password is incorrect", 401);
+    }
+
+    if (error.message === 'PASSWORD_UPDATE_FAILED') {
+      return ResponseHelper.error(res, "Failed to update password", 500);
+    }
+
+    return ResponseHelper.error(res, "Internal server error while updating password", 500);
+
+  } finally {
+    await session.endSession();
+  }
+};
+
+// Update user profile and password together (atomic operation)  commented out for now
+// exports.updateUserComplete = async (req, res) => {
+//   const session = await mongoose.startSession();
+
+//   try {
+//     const { id } = req.params;
+//     const {
+//       // Profile fields
+//       firstName,
+//       lastName,
+//       email,
+//       phone,
+//       address,
+//       dateOfBirth,
+//       profileImage,
+//       // Password fields
+//       currentPassword,
+//       newPassword,
+//       confirmPassword
+//     } = req.body;
+
+//     // Validation
+//     if (!id) {
+//       return ResponseHelper.error(res, "User ID is required", 400);
+//     }
+
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return ResponseHelper.error(res, "Invalid user ID format", 400);
+//     }
+
+//     // If password update is requested, validate password fields
+//     const isPasswordUpdate = currentPassword && newPassword && confirmPassword;
+//     if (isPasswordUpdate) {
+//       if (newPassword !== confirmPassword) {
+//         return ResponseHelper.error(res, "New password and confirm password do not match", 400);
+//       }
+
+//       if (newPassword.length < 6) {
+//         return ResponseHelper.error(res, "New password must be at least 6 characters long", 400);
+//       }
+//     }
+
+//     // Execute transaction for atomic operations
+//     const result = await session.withTransaction(async () => {
+//       // Find user in registration collection
+//       const user = await Registration.findOne({
+//         _id: id,
+//         isActive: { $ne: false }
+//       }).session(session);
+
+//       if (!user) {
+//         throw new Error('USER_NOT_FOUND');
+//       }
+
+//       // Check for duplicate email if being updated
+//       if (email && email !== user.email) {
+//         const emailExists = await Registration.findOne({
+//           _id: { $ne: id },
+//           email: email,
+//           isActive: { $ne: false }
+//         }).session(session);
+
+//         if (emailExists) {
+//           throw new Error('EMAIL_EXISTS');
+//         }
+//       }
+
+//       // Check for duplicate phone if being updated
+//       if (phone && phone !== user.phone) {
+//         const phoneExists = await Registration.findOne({
+//           _id: { $ne: id },
+//           phone: phone,
+//           isActive: { $ne: false }
+//         }).session(session);
+
+//         if (phoneExists) {
+//           throw new Error('PHONE_EXISTS');
+//         }
+//       }
+
+//       // Build profile update object
+//       const profileUpdateData = { updatedAt: new Date() };
+//       if (firstName !== undefined) profileUpdateData.firstName = firstName;
+//       if (lastName !== undefined) profileUpdateData.lastName = lastName;
+//       if (email !== undefined) profileUpdateData.email = email;
+//       if (phone !== undefined) profileUpdateData.phone = phone;
+//       if (address !== undefined) profileUpdateData.address = address;
+//       if (dateOfBirth !== undefined) profileUpdateData.dateOfBirth = dateOfBirth;
+//       if (profileImage !== undefined) profileUpdateData.profileImage = profileImage;
+
+//       // Update profile if there are fields to update
+//       let updatedUser = user;
+//       if (Object.keys(profileUpdateData).length > 1) { // More than just updatedAt
+//         updatedUser = await Registration.findByIdAndUpdate(
+//           id,
+//           profileUpdateData,
+//           {
+//             new: true,
+//             runValidators: true,
+//             session
+//           }
+//         ).select('-password');
+//       }
+
+//       let passwordUpdated = false;
+//       // Update password if requested
+//       if (isPasswordUpdate) {
+//         // Find login record
+//         const loginRecord = await Login.findOne({
+//           email: user.email
+//         }).session(session);
+
+//         if (!loginRecord) {
+//           throw new Error('LOGIN_RECORD_NOT_FOUND');
+//         }
+
+//         // Verify current password
+//         const isCurrentPasswordValid = await bcrypt.compare(currentPassword, loginRecord.password);
+//         if (!isCurrentPasswordValid) {
+//           throw new Error('INVALID_CURRENT_PASSWORD');
+//         }
+
+//         // Hash new password
+//         const saltRounds = 12;
+//         const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+//         // Update password in login collection
+//         await Login.updateOne(
+//           { email: user.email },
+//           { 
+//             $set: { 
+//               password: hashedNewPassword,
+//               updatedAt: new Date()
+//             }
+//           }
+//         ).session(session);
+
+//         passwordUpdated = true;
+//       }
+
+//       return {
+//         user: updatedUser,
+//         profileUpdated: Object.keys(profileUpdateData).length > 1,
+//         passwordUpdated,
+//         updatedFields: Object.keys(profileUpdateData).filter(field => field !== 'updatedAt')
+//       };
+//     });
+
+//     return ResponseHelper.success(res, {
+//       user: result.user,
+//       profileUpdated: result.profileUpdated,
+//       passwordUpdated: result.passwordUpdated,
+//       updatedFields: result.updatedFields,
+//       updatedAt: new Date().toISOString()
+//     }, "User information updated successfully", 200);
+
+//   } catch (error) {
+//     console.error('Error updating user information:', error.message);
+
+//     // Handle specific errors
+//     if (error.message === 'USER_NOT_FOUND') {
+//       return ResponseHelper.error(res, "User not found or has been deactivated", 404);
+//     }
+
+//     if (error.message === 'EMAIL_EXISTS') {
+//       return ResponseHelper.error(res, "Email already exists for another user", 409);
+//     }
+
+//     if (error.message === 'PHONE_EXISTS') {
+//       return ResponseHelper.error(res, "Phone number already exists for another user", 409);
+//     }
+
+//     if (error.message === 'LOGIN_RECORD_NOT_FOUND') {
+//       return ResponseHelper.error(res, "Login record not found for this user", 404);
+//     }
+
+//     if (error.message === 'INVALID_CURRENT_PASSWORD') {
+//       return ResponseHelper.error(res, "Current password is incorrect", 401);
+//     }
+
+//     return ResponseHelper.error(res, "Internal server error while updating user information", 500);
+
+//   } finally {
+//     await session.endSession();
+//   }
+// };
+
+// Get user profile details
+exports.getUserProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "User ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid user ID format", 400);
+    }
+
+    // Find user in registration collection
+    const user = await Registration.findOne({
+      _id: id,
+      isActive: { $ne: false }
+    }).select('-password'); // Exclude password from response
+
+    if (!user) {
+      return ResponseHelper.error(res, "User not found or has been deactivated", 404);
+    }
+
+    return ResponseHelper.success(res, user, "User profile retrieved successfully", 200);
+
+  } catch (error) {
+    console.error('Error retrieving user profile:', error);
+    return ResponseHelper.error(res, "Internal server error while retrieving user profile", 500);
+  }
+};
+
+// Update user status (activate/deactivate)
+exports.updateUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    // Validation
+    if (!id) {
+      return ResponseHelper.error(res, "User ID is required", 400);
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return ResponseHelper.error(res, "Invalid user ID format", 400);
+    }
+
+    if (typeof isActive !== 'boolean') {
+      return ResponseHelper.error(res, "isActive must be a boolean value", 400);
+    }
+
+    // Check if user exists
+    const existingUser = await Registration.findById(id);
+    if (!existingUser) {
+      return ResponseHelper.error(res, "User not found", 404);
+    }
+
+    // Update user status
+    const updatedUser = await Registration.findByIdAndUpdate(
+      id,
+      {
+        isActive,
+        updatedAt: new Date()
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    ).select('-password');
+
+    return ResponseHelper.success(res, updatedUser, `User ${isActive ? 'activated' : 'deactivated'} successfully`, 200);
+
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    return ResponseHelper.error(res, "Internal server error while updating user status", 500);
   }
 };

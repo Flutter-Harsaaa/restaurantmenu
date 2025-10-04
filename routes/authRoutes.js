@@ -9,7 +9,12 @@ const {
   resendEmailOTP ,
   logout,
   logoutAllDevices,
-  checkLogoutStatus
+  checkLogoutStatus,
+  getUserProfile,
+  updateUserProfile,
+  updateUserPassword,
+  updateUserStatus
+  // deleteUser
 
 } = require("../controllers/authController");
 const authenticateToken = require("../middleware/authMiddleware");
@@ -18,6 +23,11 @@ const authenticateToken = require("../middleware/authMiddleware");
 router.post("/register", register);
 router.post("/login", login);
 router.get("/verify", authenticateToken, verifyUser);
+// router.delete("/delete", authenticateToken, deleteUser);
+router.put("/updateuserprofile", authenticateToken, updateUserProfile);
+router.get("/getuserprofile", authenticateToken, getUserProfile);
+router.put("/updateuserpassword", authenticateToken, updateUserPassword);
+router.put("/updateuserstatus", authenticateToken, updateUserStatus);
 
 // Email OTP verification routes
 router.post("/send-email-otp", sendEmailOTP);
