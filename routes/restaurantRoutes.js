@@ -2,13 +2,21 @@ const express = require("express");
 const router = express.Router();
 const restaurantController = require("../controllers/restaurantController");
 const authMiddleware = require("../middleware/authMiddleware");
-
 const {
   createCategory,
   getCategories,
   updateCategory,
   deleteCategory
 } =require("../controllers/categoryController.js");
+const {
+  createMenuItem,
+  getMenuItems,
+  getMenuItem,
+  updateMenuItem,
+  deleteMenuItem
+} = require('../controllers/menuItemController');
+
+
 
 //restaurants Api's 
 // Register new restaurant (POST)
@@ -29,8 +37,15 @@ router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestauran
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
 
 //categories Api's
-router.post('/create-category/:restaurantId/categories', createCategory);
-router.get('/get-category/:restaurantId/categories', getCategories);
-router.put('/update-category/:restaurantId/categories/:categoryId', updateCategory);
-router.delete('/delete-category/:restaurantId/categories/:categoryId', deleteCategory);
+router.post('/category/create-category/:restaurantId/categories',authMiddleware, createCategory);
+router.get('/category/get-category/:restaurantId/categories',authMiddleware, getCategories);
+router.put('/category/update-category/:restaurantId/categories/:categoryId',authMiddleware, updateCategory);
+router.delete('/category/delete-category/:restaurantId/categories/:categoryId',authMiddleware, deleteCategory);
+
+router.post('/menu/create-menu/:resId/items', createMenuItem);
+router.get('/menu/get-all-menu/:resId/items', getMenuItems);
+router.get('/menu/getbyid-menu/:resId/items/:itemId', getMenuItem);
+router.put('/menu/update-menu/:resId/items/:itemId', updateMenuItem);
+router.delete('/menu/delete-menu/:resId/items/:itemId', deleteMenuItem);
+
 module.exports = router;
