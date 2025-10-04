@@ -15,16 +15,28 @@ const {
   updateMenuItem,
   deleteMenuItem
 } = require('../controllers/menuItemController');
+const {
+  createTable,
+  getAllTables,
+  getTableById,
+  updateTable,
+  deleteTable,
+  getTableStats
+} = require("../controllers/tableController.js");
+
+
 
 
 
 //restaurants Api's 
+
 // Register new restaurant (POST)
 router.post(
   "/register",
   authMiddleware,
   restaurantController.registerRestaurant
 );
+
 
 // Get all restaurants (GET) - optional
 router.get(
@@ -33,7 +45,9 @@ router.get(
   restaurantController.getAllRestaurants
 );
 router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestaurant);
-// GET /api/restaurants/id/:id 
+// router.put('/update/:id',authMiddleware, restaurantController.updateRestaurant);
+//some routes are reamining 
+// GET /api/restaurants/id/:id
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
 
 //categories Api's
@@ -43,10 +57,19 @@ router.put('/category/update-category/:restaurantId/categories/:categoryId',auth
 router.delete('/category/delete-category/:restaurantId/categories/:categoryId',authMiddleware, deleteCategory);
 
 //menuItems Api's
+//menuItems Api's
 router.post('/menu/create-menu/:resId/items', createMenuItem);
 router.get('/menu/get-all-menu/:resId/items', getMenuItems);
-router.get('/menu/getbyid-menu/:resId/items/:itemId', getMenuItem);
-router.put('/menu/update-menu/:resId/items/:itemId', updateMenuItem);
-router.delete('/menu/delete-menu/:resId/items/:itemId', deleteMenuItem);
+router.get('/menu/get-menu/:resId/items/:itemId', getMenuItem);
+router.put('/menu/create-menu/:resId/items/:itemId', updateMenuItem);
+router.delete('/menu/create-menu/:resId/items/:itemId', deleteMenuItem);
+
+// Table APIs (add these to your existing routes)
+router.post('/create-table/:restaurantId/tables', createTable);
+router.get('/get-tables/:restaurantId/tables', getAllTables);
+router.get('/get-table/:restaurantId/tables/:tableId', getTableById);
+router.put('/update-table/:restaurantId/tables/:tableId', updateTable);
+router.delete('/delete-table/:restaurantId/tables/:tableId', deleteTable);
+router.get('/table-stats/:restaurantId/tables/stats', getTableStats);
 
 module.exports = router;
