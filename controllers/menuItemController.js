@@ -48,7 +48,7 @@ exports.getMenuItems = async (req, res) => {
   try {
     const { resId } = req.params;
     const items = await MenuItem.find({ resId });
-    return ResponseHelper.success(res, items, "Items fetched successfully");
+    return ResponseHelper.success(res, items, "Items fetched successfully",200);
   } catch (error) {
     return ResponseHelper.error(res, "Internal Server Error", 500, [error.message]);
   }
@@ -63,7 +63,7 @@ exports.getMenuItem = async (req, res) => {
       return ResponseHelper.error(res, "Menu item not found", 404);
     }
 
-    return ResponseHelper.success(res, item, "Item fetched successfully");
+    return ResponseHelper.success(res, item, "Item fetched successfully",200);
   } catch (error) {
     return ResponseHelper.error(res, "Internal Server Error", 500, [error.message]);
   }
@@ -92,7 +92,7 @@ exports.updateMenuItem = async (req, res) => {
       return ResponseHelper.error(res, "Menu item not found", 404);
     }
 
-    return ResponseHelper.success(res, updatedItem, "Item updated successfully");
+    return ResponseHelper.success(res, updatedItem, "Item updated successfully",200);
   } catch (error) {
     return ResponseHelper.error(res, "Internal Server Error", 500, [error.message]);
   }
@@ -107,7 +107,7 @@ exports.deleteMenuItem = async (req, res) => {
       return ResponseHelper.error(res, "Menu item not found", 404);
     }
 
-    return ResponseHelper.success(res, deletedItem, "Item deleted successfully");
+    return ResponseHelper.success(res, deletedItem, "Item deleted successfully",200);
   } catch (error) {
     return ResponseHelper.error(res, "Internal Server Error", 500, [error.message]);
   }

@@ -87,7 +87,7 @@ exports.getAllTables = async (req, res) => {
       }
     };
 
-    return ResponseHelper.success(res, responseData, "Tables fetched successfully");
+    return ResponseHelper.success(res, responseData, "Tables fetched successfully",200);
   } catch (error) {
     return ResponseHelper.error(res, "Internal server error", 500, [error.message]);
   }
@@ -112,7 +112,7 @@ exports.getTableById = async (req, res) => {
       return ResponseHelper.error(res, "Table not found for this restaurant", 404);
     }
 
-    return ResponseHelper.success(res, table, "Table fetched successfully");
+    return ResponseHelper.success(res, table, "Table fetched successfully",200);
   } catch (error) {
     return ResponseHelper.error(res, "Internal server error", 500, [error.message]);
   }
@@ -160,7 +160,7 @@ exports.updateTable = async (req, res) => {
       return ResponseHelper.error(res, "Table not found for this restaurant", 404);
     }
 
-    return ResponseHelper.success(res, table, "Table updated successfully");
+    return ResponseHelper.success(res, table, "Table updated successfully",200);
   } catch (error) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
@@ -194,7 +194,7 @@ exports.deleteTable = async (req, res) => {
       return ResponseHelper.error(res, "Table not found or already deleted", 404);
     }
 
-    return ResponseHelper.success(res, table, "Table deleted successfully");
+    return ResponseHelper.success(res, table, "Table deleted successfully",200);
   } catch (error) {
     return ResponseHelper.error(res, "Internal server error", 500, [error.message]);
   }
@@ -228,7 +228,7 @@ exports.getTableStats = async (req, res) => {
       statusBreakdown: stats
     };
 
-    return ResponseHelper.success(res, responseData, "Table statistics fetched successfully");
+    return ResponseHelper.success(res, responseData, "Table statistics fetched successfully",200);
   } catch (error) {
     return ResponseHelper.error(res, "Internal server error", 500, [error.message]);
   }
