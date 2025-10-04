@@ -49,6 +49,8 @@ router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestauran
 //some routes are reamining 
 // GET /api/restaurants/id/:id
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
+//GET restaurant by id without middleware
+router.get('/menu-restaurant/:id', restaurantController.getRestaurantById);
 
 //categories Api's
 router.post('/category/create-category/:restaurantId/categories',authMiddleware, createCategory);
