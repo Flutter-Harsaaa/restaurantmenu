@@ -10,13 +10,16 @@ const {
   deleteCategory
 } =require("../controllers/categoryController.js");
 
+
 //restaurants Api's 
+
 // Register new restaurant (POST)
 router.post(
   "/register",
   authMiddleware,
   restaurantController.registerRestaurant
 );
+
 
 // Get all restaurants (GET) - optional
 router.get(
