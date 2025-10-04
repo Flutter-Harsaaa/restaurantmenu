@@ -61,8 +61,8 @@ router.delete('/category/delete-category/:restaurantId/categories/:categoryId',a
 router.post('/menu/create-menu/:resId/items', createMenuItem);
 router.get('/menu/get-all-menu/:resId/items', getMenuItems);
 router.get('/menu/get-menu/:resId/items/:itemId', getMenuItem);
-router.put('/menu/create-menu/:resId/items/:itemId', updateMenuItem);
-router.delete('/menu/create-menu/:resId/items/:itemId', deleteMenuItem);
+router.put('/menu/update-menu/:resId/items/:itemId', updateMenuItem);
+router.delete('/menu/delete-menu/:resId/items/:itemId', deleteMenuItem);
 
 // Table APIs (add these to your existing routes)
 router.post('/create-table/:restaurantId/tables', createTable);
