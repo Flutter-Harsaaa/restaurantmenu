@@ -15,6 +15,15 @@ const {
   updateMenuItem,
   deleteMenuItem
 } = require('../controllers/menuItemController');
+const {
+  createTable,
+  getAllTables,
+  getTableById,
+  updateTable,
+  deleteTable,
+  getTableStats
+} = require("../controllers/tableController.js");
+
 
 
 
@@ -36,7 +45,7 @@ router.get(
   restaurantController.getAllRestaurants
 );
 router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestaurant);
-router.put('/update/:id',authMiddleware, restaurantController.updateRestaurant);
+// router.put('/update/:id',authMiddleware, restaurantController.updateRestaurant);
 //some routes are reamining 
 // GET /api/restaurants/id/:id
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
@@ -47,10 +56,19 @@ router.get('/category/get-category/:restaurantId/categories',authMiddleware, get
 router.put('/category/update-category/:restaurantId/categories/:categoryId',authMiddleware, updateCategory);
 router.delete('/category/delete-category/:restaurantId/categories/:categoryId',authMiddleware, deleteCategory);
 
+//menuItems Api's
 router.post('/menu/create-menu/:resId/items', createMenuItem);
 router.get('/menu/get-all-menu/:resId/items', getMenuItems);
 router.get('/menu/get-menu/:resId/items/:itemId', getMenuItem);
 router.put('/menu/create-menu/:resId/items/:itemId', updateMenuItem);
 router.delete('/menu/create-menu/:resId/items/:itemId', deleteMenuItem);
+
+// Table APIs (add these to your existing routes)
+router.post('/create-table/:restaurantId/tables', createTable);
+router.get('/get-tables/:restaurantId/tables', getAllTables);
+router.get('/get-table/:restaurantId/tables/:tableId', getTableById);
+router.put('/update-table/:restaurantId/tables/:tableId', updateTable);
+router.delete('/delete-table/:restaurantId/tables/:tableId', deleteTable);
+router.get('/table-stats/:restaurantId/tables/stats', getTableStats);
 
 module.exports = router;
