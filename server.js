@@ -15,19 +15,24 @@ const allowedOrigins = [
   //"http://localhost:5174",
   "https://restaurantmenu-five.vercel.app",
 ];
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
+    origin: '*',
+  })
 );
+
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       if (!origin || allowedOrigins.includes(origin)) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error("Not allowed by CORS"));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
 
 // Middleware → ensure DB connected for each request
 app.use(async (req, res, next) => {
