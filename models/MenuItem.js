@@ -11,10 +11,10 @@ const menuItemSchema = new mongoose.Schema({
     enum: ["veg", "non-veg"], 
     required: true 
   },
-  productCategory: { 
-    type: String,  
-    required: true,
-    trim: true
+  productCategory:{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Categories", 
+    required: true 
   },
   prepTime: { type: String, trim: true },
   calories: { type: Number },
