@@ -3,7 +3,7 @@ const ResponseHelper = require('../utils/responseHelper');
 
 exports.createMenuItem = async (req, res) => {
   try {
-    const { itemName, description, price, discountPrice, quantity, itemCategory, prepTime, calories, spicyLevel, rating, ingredients, image } = req.body;
+    const { itemName, description, price, discountPrice, quantity, itemCategory,productCategory, prepTime, calories, spicyLevel, rating, ingredients, image } = req.body;
     const { resId } = req.params;
 
     if (!itemName) {
@@ -29,6 +29,7 @@ exports.createMenuItem = async (req, res) => {
       discountPrice,
       quantity,
       itemCategory,
+      productCategory,
       prepTime,
       calories,
       spicyLevel,
@@ -75,7 +76,7 @@ exports.updateMenuItem = async (req, res) => {
     const updateData = req.body;
 
     // If updating category or spicyLevel, validate enums
-    if (updateData.itemCategory && !["veg", "non-veg", "pig"].includes(updateData.itemCategory)) {
+    if (updateData.itemCategory && !["veg", "non-veg"].includes(updateData.itemCategory)) {
       return ResponseHelper.error(res, "Invalid item category", 400);
     }
     if (updateData.spicyLevel && !["low", "medium", "high"].includes(updateData.spicyLevel)) {
