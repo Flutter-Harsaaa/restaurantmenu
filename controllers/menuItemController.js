@@ -1,4 +1,4 @@
-const MenuItem = require('../models/MenuItem');
+const MenuItem = require('../models/models/MenuItem.js');
 const ResponseHelper = require('../utils/responseHelper');
 
 exports.createMenuItem = async (req, res) => {
