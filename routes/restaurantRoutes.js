@@ -2,50 +2,18 @@ const express = require("express");
 const router = express.Router();
 const restaurantController = require("../controllers/restaurantController");
 const authMiddleware = require("../middleware/authMiddleware");
-const {
-  createCategory,
-  getCategories,
-  updateCategory,
-  deleteCategory
-} =require("../controllers/categoryController.js");
-const {
-  createMenuItem,
-  getMenuItems,
-  getMenuItem,
-  updateMenuItem,
-  deleteMenuItem
-} = require('../controllers/menuItemController');
-const {
-  createTable,
-  getAllTables,
-  getTableById,
-  updateTable,
-  deleteTable,
-  getTableStats
-} = require("../controllers/tableController.js");
-
-
-
-
+const {createCategory,getCategories,updateCategory,deleteCategory} =require("../controllers/categoryController.js");
+const {createMenuItem,getMenuItems,getMenuItem,updateMenuItem,deleteMenuItem} = require('../controllers/menuItemController');
+const {createTable,getAllTables,getTableById,updateTable,deleteTable,getTableStats} = require("../controllers/tableController.js");
+const upload = require('../middleware/uploadMiddleware');
 
 //restaurants Api's 
 
-// Register new restaurant (POST)
-router.post(
-  "/register",
-  authMiddleware,
-  restaurantController.registerRestaurant
-);
-
-
-// Get all restaurants (GET) - optional
-router.get(
-  "/all-restaurant/",
-  authMiddleware,
-  restaurantController.getAllRestaurants
-);
+router.post("/register",authMiddleware,upload.single('logo'),restaurantController.registerRestaurant);
+router.put("/update/:id",authMiddleware,upload.single('logo'),restaurantController.updateRestaurant);
+router.get("/all-restaurant/",authMiddleware,restaurantController.getAllRestaurants);
 router.delete('/delete/:id',authMiddleware, restaurantController.deleteRestaurant);
-// router.put('/update/:id',authMiddleware, restaurantController.updateRestaurant);
+
 //some routes are reamining 
 // GET /api/restaurants/id/:id
 router.get('/id/:id',authMiddleware, restaurantController.getRestaurantById);
@@ -60,13 +28,13 @@ router.delete('/category/delete-category/:restaurantId/categories/:categoryId',a
 
 //menuItems Api's
 //menuItems Api's
-router.post('/menu/create-menu/:resId/items',authMiddleware, createMenuItem);
+router.post('/menu/create-menu/:resId/items',authMiddleware, upload.array('images', 5), createMenuItem);
 router.get('/menu/get-all-menu/:resId/items',authMiddleware, getMenuItems);
 router.get('/menu/get-menu/:resId/items/:itemId',authMiddleware, getMenuItem);
 //get by id public api
 router.get('/menu/getmenus/:resId/items', getMenuItems);
 router.get('/menu/getmenu/:resId/items/:itemId', getMenuItem);
-router.put('/menu/update-menu/:resId/items/:itemId',authMiddleware, updateMenuItem);
+router.put('/menu/update-menu/:resId/items/:itemId',authMiddleware, upload.array('images', 5), updateMenuItem);
 router.delete('/menu/delete-menu/:resId/items/:itemId',authMiddleware, deleteMenuItem);
 
 // Table APIs (add these to your existing routes)

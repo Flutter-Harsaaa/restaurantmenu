@@ -1,42 +1,57 @@
 const MenuItem = require('../models/MenuItem.js');
 const ResponseHelper = require('../utils/responseHelper');
-
 const Category = require('../models/Category'); // Import your Category model
+const { uploadImage } = require('../utils/cloudinaryHelper');
+const Restaurant = require('../models/Restaurant.js');
 
 exports.createMenuItem = async (req, res) => {
   try {
-    const { itemName, description, price, discountPrice, quantity, tags, itemCategory, productCategory, prepTime, calories, spicyLevel, rating, ingredients, image } = req.body;
+    const {
+      itemName, description, price, discountPrice, quantity, tags,
+      itemCategory, productCategory, prepTime, calories,
+      spicyLevel, rating, ingredients
+    } = req.body;
     const { resId } = req.params;
 
-    // basic validations
+    // Validations (as before)
     if (!itemName) return ResponseHelper.error(res, "Item name is required", 400);
     if (!price && price !== 0) return ResponseHelper.error(res, "Price is required", 400);
     if (!itemCategory) return ResponseHelper.error(res, "Item category is required", 400);
     if (!["veg", "non-veg"].includes(itemCategory)) return ResponseHelper.error(res, "Invalid item category", 400);
     if (spicyLevel && !["low", "medium", "high"].includes(spicyLevel)) return ResponseHelper.error(res, "Invalid spicy level", 400);
 
-    // 🔍 Validate productCategory existence
     const categoryExists = await Category.findById(productCategory);
-    if (!categoryExists) {
-      return ResponseHelper.error(res, "Product category not available", 404);
+    if (!categoryExists) return ResponseHelper.error(res, "Product category not available", 404);
+    const  restaurantExist=await Restaurant.findById(resId);
+    if (!restaurantExist) return ResponseHelper.error(res, "Restaurant not available", 404);
+
+
+    let imageUrls = [];
+
+    if (req.files && req.files.length) {
+      for (let i = 0; i < req.files.length; i++) {
+        const url = await uploadImage({
+          filePath: req.files[i].buffer,
+          restaurantName: restaurantExist.restaurantName ? restaurantExist.restaurantName.toString() : '',/* pass actual restaurant name if available */
+          type: "menuitem",
+          menuItemName: itemName,
+          imageIndex: i + 1,
+        });
+        imageUrls.push(url);
+      }
+    } else if (req.body.image) {
+      if (Array.isArray(req.body.image)) {
+        imageUrls = req.body.image;
+      } else {
+        imageUrls = [req.body.image];
+      }
     }
 
-    // create menu item
     const newMenuItem = await MenuItem.create({
-      itemName,
-      description,
-      price,
-      discountPrice,
-      quantity,
-      tags,
-      itemCategory,
-      productCategory,
-      prepTime,
-      calories,
-      spicyLevel,
-      rating,
-      ingredients,
-      image,
+      itemName, description, price, discountPrice, quantity, tags,
+      itemCategory, productCategory, prepTime, calories,
+      spicyLevel, rating, ingredients,isActive:1,
+      image: imageUrls,
       resId
     });
 
@@ -45,6 +60,8 @@ exports.createMenuItem = async (req, res) => {
     return ResponseHelper.error(res, "Internal Server Error", 500, [error.message]);
   }
 };
+
+
 
 
 exports.getMenuItems = async (req, res) => {
@@ -123,34 +140,52 @@ exports.getMenuItem = async (req, res) => {
 exports.updateMenuItem = async (req, res) => {
   try {
     const { resId, itemId } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
 
-    // Validate enums if provided
-    if (updateData.itemCategory && !["veg", "non-veg"].includes(updateData.itemCategory)) {
+    // Validate enums and productCategory as usual
+    if (updateData.itemCategory && !["veg", "non-veg"].includes(updateData.itemCategory))
       return ResponseHelper.error(res, "Invalid item category", 400);
-    }
-    if (updateData.spicyLevel && !["low", "medium", "high"].includes(updateData.spicyLevel)) {
+    if (updateData.spicyLevel && !["low", "medium", "high"].includes(updateData.spicyLevel))
       return ResponseHelper.error(res, "Invalid spicy level", 400);
-    }
 
-    // 🔍 Validate productCategory if included in update
     if (updateData.productCategory) {
       const categoryExists = await Category.findById(updateData.productCategory);
-      if (!categoryExists) {
-        return ResponseHelper.error(res, "Product category not available", 404);
+      if (!categoryExists) return ResponseHelper.error(res, "Product category not available", 404);
+    }
+
+    if (resId) {
+    const  restaurantExist=await Restaurant.findById(resId);
+    if (!restaurantExist) return ResponseHelper.error(res, "Restaurant not available", 404);
+    }
+    // Handle new images upload
+    if (req.files && req.files.length) {
+      const newImageUrls = [];
+      for (let i = 0; i < req.files.length; i++) {
+        const url = await uploadImage({
+          filePath: req.files[i].buffer,
+          restaurantName:restaurantExist.restaurantName ? restaurantExist.restaurantName.toString() : '', /* pass your restaurant name as needed */
+          type: "menuitem",
+          menuItemName: updateData.itemName || '',
+          imageIndex: i + 1
+        });
+        newImageUrls.push(url);
+      }
+
+      // Append new images to current list
+      if (updateData.image && Array.isArray(updateData.image)) {
+        updateData.image = [...updateData.image, ...newImageUrls];
+      } else {
+        updateData.image = newImageUrls;
       }
     }
 
-    // Update the item
     const updatedItem = await MenuItem.findOneAndUpdate(
       { _id: itemId, resId },
       { $set: updateData },
-      { new: true, runValidators: true } // ensures schema validators run
+      { new: true, runValidators: true }
     );
 
-    if (!updatedItem) {
-      return ResponseHelper.error(res, "Menu item not found", 404);
-    }
+    if (!updatedItem) return ResponseHelper.error(res, "Menu item not found", 404);
 
     return ResponseHelper.success(res, updatedItem, "Item updated successfully", 200);
   } catch (error) {
@@ -159,17 +194,22 @@ exports.updateMenuItem = async (req, res) => {
 };
 
 
+
+
 exports.deleteMenuItem = async (req, res) => {
   try {
     const { resId, itemId } = req.params;
-    const deletedItem = await MenuItem.findOneAndDelete({ _id: itemId, resId });
+    const result = await MenuItem.findOneAndUpdate(
+      { _id: itemId, resId },
+      { $set: { isActive: 0 } }, // or 0, depending on your schema
+      { new: true }
+    );
 
-    if (!deletedItem) {
-      return ResponseHelper.error(res, "Menu item not found", 404);
-    }
+    if (!result) return ResponseHelper.error(res, "Menu item not found", 404);
 
-    return ResponseHelper.success(res, deletedItem, "Item deleted successfully",200);
+    return ResponseHelper.success(res, result, "Menu item soft deleted successfully", 200);
   } catch (error) {
-    return ResponseHelper.error(res, "Internal Server Error", 500, [error.message]);
+    return ResponseHelper.error(res, "Internal Server Error", 500);
   }
 };
+
