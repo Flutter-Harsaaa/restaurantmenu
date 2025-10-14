@@ -23,6 +23,7 @@ const menuItemSchema = new mongoose.Schema({
     enum: ["low", "medium", "high"]
   },
   rating: { type: Number },
+  tags: [{ type: String, trim: true }],
   ingredients: [{ type: String, trim: true }],
   image: [{ type: String, trim: true }],
   resId: { 
