@@ -23,6 +23,8 @@ router.get('/menu-restaurant/:id', restaurantController.getRestaurantById);
 //categories Api's
 router.post('/category/create-category/:restaurantId/categories',authMiddleware, createCategory);
 router.get('/category/get-category/:restaurantId/categories',authMiddleware, getCategories);
+//get categoory public api
+router.get('/category/get-category/:restaurantId/categories', getCategories);
 router.put('/category/update-category/:restaurantId/categories/:categoryId',authMiddleware, updateCategory);
 router.delete('/category/delete-category/:restaurantId/categories/:categoryId',authMiddleware, deleteCategory);
 
