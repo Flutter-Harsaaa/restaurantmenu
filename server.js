@@ -5,34 +5,33 @@ const connectDB = require("./utils/db");
 const ResponseHelper = require("./utils/responseHelper");
 
 dotenv.config();
-const app = express();
+const app = express()
 
 app.use(express.json());
-//app.use(cors());
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  //"http://localhost:5174",
-  "https://restaurantmenu-five.vercel.app",
-];
+// const allowedOrigins = ["*",
+//   "http://localhost:5173",
+//   //"http://localhost:5174",
+//   "https://restaurantmenu-five.vercel.app"
+// ];
 app.use(
   cors({
-    origin: '*',
-  })
+    origin: '*',
+  })
 );
 
-// app.use(
-//   cors({
-//     origin: (origin, callback) => {
-//       if (!origin || allowedOrigins.includes(origin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("Not allowed by CORS"));
-//       }
-//     },
-//     credentials: true,
-//   })
-// );
+// app.use(cors({
+//   origin: function(origin, callback) {
+//     // Allow requests with no origin (like mobile apps, curl), or whitelisted origin
+//     if (!origin || allowedOrigins.includes(origin)) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error("Not allowed by CORS"));
+//     }
+//   },
+//   credentials: true, // allow cookies, authorization headers, etc.
+// }));
+
 
 // Middleware → ensure DB connected for each request
 app.use(async (req, res, next) => {

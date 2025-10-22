@@ -25,7 +25,7 @@ const menuItemSchema = new mongoose.Schema({
   rating: { type: Number },
   tags: [{ type: String, trim: true }],
   ingredients: [{ type: String, trim: true }],
-  image: [{ type: String, trim: true }],
+  image: [{ type: String, trim: true, required:true}],
   resId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: "Restaurant", 
