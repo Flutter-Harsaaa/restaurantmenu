@@ -233,3 +233,40 @@ exports.getTableStats = async (req, res) => {
     return ResponseHelper.error(res, "Internal server error", 500, [error.message]);
   }
 };
+
+
+// 7. update table status
+exports.updateTableStatus = async (req, res) => {
+  try {
+    const { restaurantId, tableId } = req.params;
+    const { status } = req.body;
+
+    if (!['available', 'occupied', 'reserved', 'out_of_service'].includes(status)) {
+      return ResponseHelper.error(res, "Invalid status value", 400);
+    }
+
+    const updatedTable = await Table.findOneAndUpdate(
+      { _id: tableId, restaurantId, isActive: 1 },
+      { $set: { status } },
+      { new: true }
+    );
+
+    if (!updatedTable) {
+      return ResponseHelper.error(res, "Table not found", 404);
+    }
+
+    // Broadcast update to all connected clients
+    const io = req.app.get("io");
+    io.emit("tableStatusUpdated", {
+      restaurantId,
+      tableId,
+      newStatus: status,
+      updatedAt: new Date()
+    });
+
+    return ResponseHelper.success(res, updatedTable, "Table status updated successfully", 200);
+
+  } catch (error) {
+    return ResponseHelper.error(res, "Internal server error", 500, [error.message]);
+  }
+};

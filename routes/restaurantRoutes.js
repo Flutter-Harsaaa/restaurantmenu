@@ -4,7 +4,7 @@ const restaurantController = require("../controllers/restaurantController");
 const authMiddleware = require("../middleware/authMiddleware");
 const {createCategory,getCategories,updateCategory,deleteCategory} =require("../controllers/categoryController.js");
 const {createMenuItem,getMenuItems,getMenuItem,updateMenuItem,deleteMenuItem} = require('../controllers/menuItemController');
-const {createTable,getAllTables,getTableById,updateTable,deleteTable,getTableStats} = require("../controllers/tableController.js");
+const {createTable,getAllTables,getTableById,updateTable,deleteTable,getTableStats,updateTableStatus} = require("../controllers/tableController.js");
 const upload = require('../middleware/uploadMiddleware');
 
 //restaurants Api's 
@@ -48,5 +48,7 @@ router.get('/menu/get-table/:restaurantId/tables/:tableId', getTableById);
 router.put('/update-table/:restaurantId/tables/:tableId',authMiddleware, updateTable);
 router.delete('/delete-table/:restaurantId/tables/:tableId',authMiddleware, deleteTable);
 router.get('/table-stats/:restaurantId/tables/stats',authMiddleware, getTableStats);
+//public api for status  update
+router.put('/update-table-status/:restaurantId/tables/:tableId',updateTableStatus);
 
 module.exports = router;
